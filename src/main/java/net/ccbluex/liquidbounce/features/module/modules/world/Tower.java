@@ -52,8 +52,8 @@ public class Tower extends Module {
     private final ListValue modeValue = new ListValue("Mode", new String[] {
             "Jump", "Motion", "ConstantMotion", "MotionTP", "Packet", "Teleport", "AAC3.3.9", "AAC3.6.4"
     }, "Motion");
-    private final ListValue autoBlockMode = new ListValue("AutoBlock", new String[]{"Packet", "Off"}, "Packet");
-    private final BoolValue stayAutoBlock = new BoolValue("StayAutoBlock", false);
+    private final ListValue autoBlockMode = new ListValue("AutoBlock", new String[]{"Spoof", "Switch", "Off"}, "Spoof");
+    private final BoolValue stayAutoBlock = new BoolValue("StayAutoBlock", false, () -> { return !autoBlockMode.get().equalsIgnoreCase("off"); });
     private final BoolValue swingValue = new BoolValue("Swing", true);
     private final BoolValue stopWhenBlockAbove = new BoolValue("StopWhenBlockAbove", false);
     private final BoolValue rotationsValue = new BoolValue("Rotations", true);
@@ -78,7 +78,7 @@ public class Tower extends Module {
         }
     };
 
-    public final ListValue rotationModeValue = new ListValue("RotationMode", new String[]{"Normal","AAC"}, "Normal");
+    public final ListValue rotationModeValue = new ListValue("RotationMode", new String[]{"Normal", "AAC"}, "Normal");
     private final BoolValue keepRotationValue = new BoolValue("KeepRotation", false);
     private final IntegerValue keepLengthValue = new IntegerValue("KeepRotationLength", 0, 0, 20);
     private final BoolValue onJumpValue = new BoolValue("OnJump", false);
@@ -87,7 +87,7 @@ public class Tower extends Module {
     private final FloatValue timerValue = new FloatValue("Timer", 1F, 0F, 10F);
 
     // Test Verus
-    public final BoolValue verusScaffold = new BoolValue("VerusFix", false);
+    public final BoolValue verusScaffold = new BoolValue("Verus", false);
 
     // Jump mode
     private final FloatValue jumpMotionValue = new FloatValue("JumpMotion", 0.42F, 0.3681289F, 0.79F);
@@ -123,8 +123,8 @@ public class Tower extends Module {
     private final TickTimer timer = new TickTimer();
     private double jumpGround = 0;
 
-    // AutoBlock
-    private int slot;
+    // Auto block slot
+    private int slot, lastSlot;
 
     // Render thingy
     private float progress = 0;
@@ -145,7 +145,12 @@ public class Tower extends Module {
         mc.timer.timerSpeed = 1F;
         lockRotation = null;
 
-        if (slot != mc.thePlayer.inventory.currentItem)
+        if (lastSlot != mc.thePlayer.inventory.currentItem && autoBlockMode.get().equalsIgnoreCase("switch")) {
+            mc.thePlayer.inventory.currentItem = lastSlot;
+            mc.playerController.updateController();
+        }
+
+        if (slot != mc.thePlayer.inventory.currentItem && autoBlockMode.get().equalsIgnoreCase("spoof"))
             mc.getNetHandler().addToSendQueue(new C09PacketHeldItemChange(mc.thePlayer.inventory.currentItem));
     }
 
@@ -344,8 +349,7 @@ public class Tower extends Module {
             }
         }
 
-        // Switch back to old slot when using auto block
-        if (!stayAutoBlock.get() && blockSlot >= 0)
+        if (!stayAutoBlock.get() && blockSlot >= 0 && !autoBlockMode.get().equalsIgnoreCase("Switch"))
             mc.getNetHandler().addToSendQueue(new C09PacketHeldItemChange(mc.thePlayer.inventory.currentItem));
     }
 
@@ -428,15 +432,15 @@ public class Tower extends Module {
         placeInfo = placeRotation.getPlaceInfo();
         return true;
     }
-
     @EventTarget
     public void onPacket(final PacketEvent event) {
-        if(mc.thePlayer == null)
+        if (mc.thePlayer == null)
             return;
 
         final Packet<?> packet = event.getPacket();
 
-        if(packet instanceof C09PacketHeldItemChange) {
+        // AutoBlock
+        if (packet instanceof C09PacketHeldItemChange) {
             final C09PacketHeldItemChange packetHeldItemChange = (C09PacketHeldItemChange) packet;
 
             slot = packetHeldItemChange.getSlotId();
