@@ -137,7 +137,7 @@ public class Scaffold extends Module {
     private final BoolValue aacPitchValue = new BoolValue("AAC-Pitch", false, () -> { return rotationModeValue.get().equalsIgnoreCase("aac"); });
 
     // Test Verus
-    public final BoolValue verusScaffold = new BoolValue("VerusFix", false);
+    public final BoolValue verusScaffold = new BoolValue("Verus", false);
 
     private final BoolValue keepRotationValue = new BoolValue("KeepRotation", false, () -> { return rotationsValue.get(); });
     private final IntegerValue keepLengthValue = new IntegerValue("KeepRotationLength", 0, 0, 20, () -> { return rotationsValue.get() && !keepRotationValue.get(); });
@@ -738,8 +738,6 @@ public class Scaffold extends Module {
                 GlStateManager.popMatrix();
             }
             GlStateManager.resetColor();
-
-            Fonts.minecraftFont.drawString(getBlocksAmount()+" blocks", scaledResolution.getScaledWidth() / 2, scaledResolution.getScaledHeight() / 2 + 20, -1, true);
         }
     }
 
